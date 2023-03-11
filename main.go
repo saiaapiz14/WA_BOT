@@ -18,27 +18,36 @@ import (
 )
 
 var client *whatsmeow.Client
-var recipientNumbers = []string{"601160564476@s.whatsapp.net", "60122412027@s.whatsapp.net"} // List of recipient numbers
+var recipientNumbers = []string{"601160564476@s.whatsapp.net", "60122412026@s.whatsapp.net"} // List of recipient numbers
 
 func eventHandler(evt interface{}) {
 	switch v := evt.(type) {
 	case *events.Message:
 		if !v.Info.IsFromMe {
-			for _, num := range recipientNumbers {
-				if v.Info.Sender.String() != num { // Check if the incoming message is from one of the recipient numbers
-					fmt.Println("PESAN DITERIMA DARIPADA USER!", v.Message.GetConversation())
-					client.SendMessage(v.Info.Sender, "", &waProto.Message{
-						Conversation: proto.String("Pesan ini automatik. Anda mengirim pesan: " + v.Message.GetConversation()),
-					})
-					break
-				}
-				if v.Info.Sender.String() == num {
-					fmt.Println("PERAN DITERIMA DARIPADA ADMIN", v.Message.GetConversation())
-					if v.Message.GetConversation() == "/admin" {
+			for _, num := range recipientNumbers { //scan through recipient number list
+				if v.Message.GetConversation() == "/admin" { //check if the message use admin keyword
+					if v.Info.Sender.String() == num { // Check if the incoming message is from one of the recipient numbers
+						fmt.Println("PESAN DITERIMA DARIPADA ADMIN!", v.Message.GetConversation()) //show message in terminal that admin sent the message
+						client.SendMessage(v.Info.Sender, "", &waProto.Message{                    //send message response to the keyword
+							Conversation: proto.String("YA TUAN APA SAYA BOLEH BANTU"), //content of the message
+						})
+						break //exit after running function
+					} else {
+						fmt.Println("PESAN DITERIMA DARIPADA USER!", v.Message.GetConversation())
 						client.SendMessage(v.Info.Sender, "", &waProto.Message{
-							Conversation: proto.String("YA TUAN APA SAYA BOLEH BANTU"),
+							Conversation: proto.String("Pesan ini automatik, menggunakan GO!. Anda mengirim pesan: " + v.Message.GetConversation()),
 						})
 						break
+
+					}
+				} else if v.Message.GetConversation() != "" {
+					if v.Info.Sender.String() != num { // Check if the incoming message is from one of the recipient numbers
+						fmt.Println("PESAN DITERIMA DARIPADA USER!", v.Message.GetConversation())
+						client.SendMessage(v.Info.Sender, "", &waProto.Message{
+							Conversation: proto.String("Pesan ini automatik, menggunakan GO!. Anda mengirim pesan: " + v.Message.GetConversation()),
+						})
+						break
+
 					}
 				}
 			}
@@ -47,7 +56,7 @@ func eventHandler(evt interface{}) {
 }
 
 func main() {
-	dbLog := waLog.Stdout("Database", "DEBUG", true)
+	dbLog := waLog.Stdout("Database", "DEBUG", false)
 	// Make sure you add appropriate DB connector imports, e.g. github.com/mattn/go-sqlite3 for SQLite
 	container, err := sqlstore.New("sqlite3", "file:wsap.db?_foreign_keys=on", dbLog)
 	if err != nil {
@@ -58,7 +67,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	clientLog := waLog.Stdout("Client", "DEBUG", true)
+	clientLog := waLog.Stdout("Client", "DEBUG", false)
 	client = whatsmeow.NewClient(deviceStore, clientLog)
 	client.AddEventHandler(eventHandler)
 
