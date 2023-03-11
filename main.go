@@ -18,23 +18,32 @@ import (
 )
 
 var client *whatsmeow.Client
+var recipientNumbers = []string{"601160564476@s.whatsapp.net", "60122412027@s.whatsapp.net"} // List of recipient numbers
 
 func eventHandler(evt interface{}) {
-
 	switch v := evt.(type) {
 	case *events.Message:
-
-	//	if v.Info.ID == "601160564476" {
-			if !v.Info.IsFromMe{
-			fmt.Println("PESAN DITERIMA!", v.Message.GetConversation())
-			client.SendMessage(v.Info.Sender, "", &waProto.Message{
-				Conversation: proto.String("Pesan ini automatik. Anda mengirim pesan: " + v.Message.GetConversation()),
-			})
-
+		if !v.Info.IsFromMe {
+			for _, num := range recipientNumbers {
+				if v.Info.Sender.String() != num { // Check if the incoming message is from one of the recipient numbers
+					fmt.Println("PESAN DITERIMA DARIPADA USER!", v.Message.GetConversation())
+					client.SendMessage(v.Info.Sender, "", &waProto.Message{
+						Conversation: proto.String("Pesan ini automatik. Anda mengirim pesan: " + v.Message.GetConversation()),
+					})
+					break
+				}
+				if v.Info.Sender.String() == num {
+					fmt.Println("PERAN DITERIMA DARIPADA ADMIN", v.Message.GetConversation())
+					if v.Message.GetConversation() == "/admin" {
+						client.SendMessage(v.Info.Sender, "", &waProto.Message{
+							Conversation: proto.String("YA TUAN APA SAYA BOLEH BANTU"),
+						})
+						break
+					}
+				}
+			}
 		}
-
 	}
-
 }
 
 func main() {
